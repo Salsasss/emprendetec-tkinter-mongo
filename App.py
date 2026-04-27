@@ -1,32 +1,37 @@
-from customtkinter import CTk, CTkTabview, CTkFrame, CTkLabel, CTkButton, CTkOptionMenu, StringVar, CTkImage, CTkToplevel
-from tkcalendar import Calendar
+from forms import FormLogin
+from customtkinter import CTk, CTkTabview, CTkFrame, CTkLabel, CTkButton, CTkOptionMenu, StringVar, CTkImage
+from tkinter import messagebox
 from datetime import datetime
 from pymongo import MongoClient
+import bcrypt
 
 from PIL import Image
 
-from TableFrame import TableFrame
+from models.TableFrame import TableFrame
 
 from models.Alumno import Alumno
 from models.Negocio import Negocio
 from models.Stand import Stand
+from models.GenPDF import GenPDF
 
+from forms.FormLogin import FormLogin
 from forms.FormAlumno import FormAlumno
 from forms.FormNegocio import FormNegocio
 from forms.SetStand import SetStand
 from forms.SeleccionarFecha import SeleccionarFecha
 
 class App(CTk):
-    def __init__(self): # DONE
+    def __init__(self):
         super().__init__()
         self.title("EmprendeTec")
-        self.geometry('800x600')
+        self.geometry('800x650')
         self.resizable(True, True)
         
         conexion = MongoClient("mongodb://localhost:27017/")
         db = conexion['emprendetec'] # Cluster
         
         # Collections
+        self.db_usuarios = db['usuarios']
         self.db_alumnos = db['alumnos']
         self.db_negocios = db['negocios']
         self.db_stands = db['stands']
@@ -34,6 +39,9 @@ class App(CTk):
         # StringVar
         self.fecha_agenda = StringVar()
         self.fecha_para_mongo = datetime(2023, 1, 1)
+
+        # Ocultar la app (hasta no iniciar sesión)
+        self.withdraw()
     
     def _init_header(self):
         cont_header = CTkFrame(self, height=20, fg_color="transparent")
@@ -42,18 +50,18 @@ class App(CTk):
         img1 = Image.open("static/images/logo2.png")
         img2 = Image.open("static/images/logo1.png")
 
-        logo_1 = CTkImage(light_image=img1, size=(140, 50))
+        logo_1 = CTkImage(light_image=img1, size=(140,  50))
         label_1 = CTkLabel(cont_header, image=logo_1, text="")
         label_1.pack(side='left', padx=10, pady=(5, 0))
 
         title_label = CTkLabel(cont_header, text="Sistema de Control EmprendeTec", font=("Roboto", 24, "bold"))
         title_label.place(relx=0.5, rely=0.5, anchor='center')
         
-        logo_2 = CTkImage(light_image=img2, size=(60, 50))
+        logo_2 = CTkImage(light_image=img2, size=(65, 50))
         label_2 = CTkLabel(cont_header, image=logo_2, text="")
         label_2.pack(side='right', padx=10, pady=(5, 0))
         
-    def _init_tabs(self): # DONE
+    def _init_tabs(self):
         self.tabview = CTkTabview(self)
         self.tabview.pack(fill="both", expand=True)
 
@@ -61,7 +69,7 @@ class App(CTk):
         self.tabview.add("Negocios")
         self.tabview.add("Alumnos")
         
-    def _init_tablas(self): # DONE
+    def _init_tablas(self):
         # Tabla Alumnos
         self.tabla_alumnos = TableFrame(self.tabview.tab("Alumnos"), Alumno.columnas)
         self.tabla_alumnos.pack(fill="both", expand=True, padx=20, pady=(5, 20))
@@ -87,7 +95,7 @@ class App(CTk):
         
         self.tabla_negocios._llenar_tabla(negocios, Negocio.campos, self.db_negocios)
     
-    def _recargar_tabla_alumnos(self): # DONE
+    def _recargar_tabla_alumnos(self):
         json_ultimo = self.db_alumnos.find(
             {},
             {"fecha_creacion": 0},
@@ -97,17 +105,18 @@ class App(CTk):
         alumno = Alumno(json_ultimo)
         self.tabla_alumnos.insertar_fila(alumno, Alumno.campos, self.db_alumnos)
         
-    def _recargar_tabla_negocios(self): # DONE
+    def _recargar_tabla_negocios(self):
         json_ultimo = self.db_negocios.find(
             {},
-            {"_id": 0, "alumnos": 0},
+            {"alumnos": 0},
             sort=[("fecha_creacion", -1)],
             limit=1
         )[0]
+
         negocio = Negocio(json_ultimo)
         self.tabla_negocios.insertar_fila(negocio, Negocio.campos, self.db_negocios)
     
-    def _init_botones_stands(self): # DONE
+    def _init_botones_stands(self):
         self.cont_stands = CTkFrame(self.tabview.tab("Stands"))
         self.cont_stands.pack(fill='both', expand=True)
 
@@ -148,7 +157,7 @@ class App(CTk):
             self.botones_stands[self.stands[j].id] = btn
             j += 1
     
-    def _init_botones_stands_acciones(self):
+    def _consultar_stands_ocupados(self):
         jsons_stands_ocupados = self.db_stands.find(
             {"agenda.fecha": self.fecha_para_mongo}, 
              # Parte 2: La Proyección (¿Qué partes del documento devolver?)
@@ -156,29 +165,43 @@ class App(CTk):
                  "_id": 1,           # Queremos el ID del stand
                  "agenda": {
                      "$elemMatch": {"fecha": self.fecha_para_mongo} # ¡Aquí está la magia!
-                 }
+                 },
+                 "ubicacion": 1
              }
         )
         
-        stands_ocupados = [Stand(json) for json in jsons_stands_ocupados]
-            
+        self.stands_ocupados = [Stand(json) for json in jsons_stands_ocupados]
+    
+    def _init_botones_stands_acciones(self):
+        self._consultar_stands_ocupados()
+
+        if len(self.stands_ocupados) == 0:
+            self.btn_pdf.configure(state='disabled')
+        else:
+            self.btn_pdf.configure(state='normal')
+
         # Habilitando todos los botones
         for key, value in self.botones_stands.items():
-            if value.cget('state') == 'disabled':
+            if value.cget('fg_color') == '#a30000':
                 value.configure(fg_color='green')
-                value.configure(state='enabled')
                 value.configure(text=f'{key}')
         
         # Deshabilitando los ocupados
-        for stand in stands_ocupados:
+        for stand in self.stands_ocupados:
             ocupado = self.botones_stands[stand.id]
-            ocupado.configure(fg_color='red')
-            ocupado.configure(state='disabled')
+            ocupado.configure(fg_color='#a30000')
             ocupado.configure(text=f'{stand.id} \n {stand.agenda[0].negocio.nombre}')
     
-    def _init_botones(self): # DONE
-        CTkButton(self.tabview.tab("Alumnos"), text="Nuevo Alumno", command=lambda: self.tabla_alumnos.abrir_form(FormAlumno, self._recargar_tabla_alumnos)).pack()
-        CTkButton(self.tabview.tab("Negocios"), text="Nuevo Negocio", command=lambda: self.tabla_negocios.abrir_form(FormNegocio, self._recargar_tabla_negocios)).pack()
+    def _init_botones(self):
+        cont_botones_alumnos = CTkFrame(self.tabview.tab("Alumnos"), fg_color="transparent")
+        cont_botones_alumnos.pack(pady=5)
+        CTkButton(cont_botones_alumnos, text="Nuevo Alumno", command=lambda: self.tabla_alumnos.abrir_form(FormAlumno, self._recargar_tabla_alumnos)).pack(side='left', padx=5)
+        CTkButton(cont_botones_alumnos, text="Exportar Alumnos (PDF)", command=self.generar_pdf_alumnos).pack(side='left', padx=5)
+
+        cont_botones_negocios = CTkFrame(self.tabview.tab("Negocios"), fg_color="transparent")
+        cont_botones_negocios.pack(pady=5)
+        CTkButton(cont_botones_negocios, text="Nuevo Negocio", command=lambda: self.tabla_negocios.abrir_form(FormNegocio, self._recargar_tabla_negocios)).pack(side='left', padx=5)
+        CTkButton(cont_botones_negocios, text="Exportar Negocios (PDF)", command=self.generar_pdf_negocios).pack(side='left', padx=5)
 
         # Select de Fecha
         fechas_evento = self.db_stands.distinct("agenda.fecha") # Trae todas las fechas del evento usando distinct
@@ -187,11 +210,22 @@ class App(CTk):
         cont_fecha = CTkFrame(self.tabview.tab("Stands"))
         cont_fecha.pack()
 
-        CTkLabel(cont_fecha, text="Fecha del Evento:").pack(side='left', padx=10)
+        CTkLabel(cont_fecha, text="Fecha del Evento:").pack(side='left', padx=5)
         self.option_menu = CTkOptionMenu(cont_fecha, variable=self.fecha_agenda, values=self.fechas_texto, command=self.fecha_seleccionada)
-        self.option_menu.pack(side='left')
-        CTkButton(cont_fecha, text="+", width=20, command=self._agregar_fecha).pack(side='left', expand=True, fill='y', padx=10)
-    
+        self.option_menu.pack(side='left', padx=(0, 5))
+        CTkButton(cont_fecha, text="+", width=20, command=self._agregar_fecha).pack(side='left', expand=True, fill='y', padx=(0, 5))
+        CTkButton(cont_fecha, text="x", width=20, command=self._eliminar_fecha, fg_color="#a30000").pack(side='left', expand=True, fill='y', padx=(0, 5))
+        
+        self.btn_pdf = CTkButton(cont_fecha, text="Exportar Logística de hoy (PDF)", command=self.generar_pdf_logistica)
+        self.btn_pdf.pack(side='left', expand=True, fill='y')
+
+        # Si hay fechas del evento
+        if len(self.fechas_texto) > 0:
+            self.fecha_agenda.set(self.fechas_texto[0])
+            self.fecha_seleccionada(self.fechas_texto[0])
+        else:
+            self.btn_pdf.configure(state='disabled')
+
     def _agregar_fecha(self):
         ventana_fecha = SeleccionarFecha(self)
         ventana_fecha.grab_set()
@@ -205,24 +239,153 @@ class App(CTk):
                 self.option_menu.configure(values=self.fechas_texto)
             self.fecha_agenda.set(fecha)
             self.fecha_seleccionada(fecha)
-      
-    def abrir_stand(self, stand): # DONE
+    
+    def _eliminar_fecha(self):
+        respuesta = messagebox.askyesno(
+            title="Confirmación",
+            message = "¿Está seguro de eliminar la fecha?"
+        )
+        
+        if respuesta:
+            try:
+                # 1. Quitar todas las agendas de esa fecha particular
+                self.db_stands.update_many(
+                    {"agenda.fecha": self.fecha_para_mongo},
+                    {"$pull": {"agenda": {"fecha": self.fecha_para_mongo}}}
+                )
+                
+                # 2. Actualizar combo y variables de la UI
+                fecha_texto = self.fecha_agenda.get()
+                if fecha_texto in self.fechas_texto:
+                    self.fechas_texto.remove(fecha_texto)
+                
+                self.option_menu.configure(values=self.fechas_texto)
+                
+                # 3. Limpiar o enfocar la otra fecha
+                if len(self.fechas_texto) > 0:
+                    self.fecha_agenda.set(self.fechas_texto[0])
+                    self.fecha_seleccionada(self.fechas_texto[0])
+                else:
+                    self.fecha_agenda.set("")
+                    self.btn_pdf.configure(state='disabled')
+                    for key, value in self.botones_stands.items():
+                        value.configure(fg_color='green')
+                        value.configure(state='enabled')
+                        value.configure(text=f'{key}')
+            except Exception as e:
+                messagebox.showinfo("Error", f"Ocurrió un error: {e}")
+
+    def abrir_stand(self, stand):
         ventana_form = SetStand(self, stand, self.fecha_para_mongo, self._init_botones_stands_acciones)
         ventana_form.grab_set()
         ventana_form.desplegar()
-
-    def fecha_seleccionada(self, fecha_elegida): # DONE
+    
+    def fecha_seleccionada(self, fecha_elegida):
         self.fecha_para_mongo = datetime.strptime(fecha_elegida, "%d/%m/%Y")
         self._init_botones_stands_acciones()
+
+    def generar_pdf_logistica(self):
+        self._consultar_stands_ocupados()
+        if len(self.stands_ocupados) > 0:
+            generador = GenPDF()
+            generador.pdf_logistica(self.stands, self.stands_ocupados, self.fecha_agenda.get())
+        else:
+            messagebox.showinfo("Atención", "No hay stands ocupados en esta fecha para generar un reporte.")
+
+    def generar_pdf_alumnos(self):
+        jsons_alumnos = self.db_alumnos.find()
+
+        alumnos = [Alumno(json) for json in jsons_alumnos]
+        if len(alumnos) > 0:
+            generador = GenPDF()
+            generador.pdf_alumnos(alumnos)
+        else:
+            messagebox.showinfo("Atención", "No hay alumnos registrados para generar el reporte.")
+
+    def generar_pdf_negocios(self):
+        jsons_negocios = self.db_negocios.find(
+            {},
+            {
+                "_id": 0,
+            }
+        )
+        negocios = [Negocio(json) for json in jsons_negocios]
         
-    def desplegar(self): # DONE
+        if len(negocios) > 0:
+            generador = GenPDF()
+            generador.pdf_negocios(negocios)
+        else:
+            messagebox.showinfo("Atención", "No hay negocios registrados para generar el reporte.")
+
+    def init(self, usuario):
+        self.usuario_actual = usuario # Guardamos quién es, por si queremos usar sus roles
+
         self._init_header()
-        self._init_tabs() # DONE
+        self._init_tabs()
         self._init_botones_stands()
         self._init_botones()
         self._init_botones_stands_acciones()
-        self._init_tablas() # DONE
-        self.mainloop() # DONE
+        self._init_tablas()
+        self._init_footer()
+
+        self.deiconify() # ¡Magia! Muestra la pantalla principal que estaba oculta
+    
+    def _init_footer(self):
+        # 1. Función cuando el mouse se pone encima
+        def al_entrar_mouse(event):
+            label_1.configure(text_color="red")
+
+        # 2. Función cuando el mouse se quita
+        def al_salir_mouse(event):
+            # Aquí regresas el color a la normalidad. 
+            # Puedes poner "white", "black", o ["black", "white"] si usas modo claro/oscuro
+            label_1.configure(text_color=["black", "white"])
+
+        cont_footer = CTkFrame(self, height=20, fg_color="transparent")
+        cont_footer.pack(side='bottom', fill='x')
+        
+        label_1 = CTkLabel(cont_footer, text="Cerrar Sesión")
+        label_1.pack(side='left', padx=20, pady=5)
+
+        label_2 = CTkLabel(cont_footer, text=f"¡Bienvenido, {self.usuario_actual.nombre}!")
+        label_2.pack(side='right', padx=20, pady=5)
+
+        # 3. Conectamos los eventos a la etiqueta
+        label_1.bind("<Enter>", al_entrar_mouse)
+        label_1.bind("<Leave>", al_salir_mouse)
+        label_1.bind("<Button-1>", self.cerrar_sesion)
+
+    def cerrar_sesion(self, event=None):
+        self.withdraw()
+        
+        for widget in self.winfo_children():
+            widget.destroy()
+            
+        self.usuario_actual = None
+        
+        FormLogin(self, self.init)
+
+    def desplegar(self):
+        FormLogin(self, self.init)
+        self.mainloop()
+
+    def _aux_registrar(self):
+        password_plana = "12345" # La que escribió en el input
+        # Hashear la contraseña (bcrypt requiere que el texto esté codificado a bytes)
+        password_hasheada = bcrypt.hashpw(password_plana.encode('utf-8'), bcrypt.gensalt())
+        # Esto es lo que guardas en MongoDB
+        nuevo_usuario = {
+            "nombre": "Aarón",
+            "correo": "aaronsalasn@gmail.com",
+            "contrasena": password_hasheada,
+            "rol": "admin",
+            "fecha_creacion": datetime.now(),
+            "esta_activo": True
+        }
+
+        self.db_usuarios.insert_one(nuevo_usuario)
+
+        print("GOL")
 
 appMongo = App()
 appMongo.desplegar()

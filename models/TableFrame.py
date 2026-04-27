@@ -43,7 +43,6 @@ class TableFrame(CTkScrollableFrame):
             self.fila_actual = 1
 
         fila_widgets = []
-
         for i, campo in enumerate(campos):
             valor = getattr(objeto, campo) # Obtenemos el valor del objeto
 
@@ -67,9 +66,9 @@ class TableFrame(CTkScrollableFrame):
         
         CTkButton(cont, text="Editar", width=40, height=20, fg_color="#3b8ed0", command=lambda id=id, coleccion=coleccion: self.editar(id, coleccion)).pack(side="left", padx=2)
         if esta_activo: # Desactivar
-            CTkButton(cont, text="X", width=30, height=20, fg_color="#943126", command=lambda id=id, valor=False, coleccion=coleccion: self.cambiar_activo(id, valor, coleccion)).pack(side="left", padx=2)
+            CTkButton(cont, text="X", width=30, height=20, fg_color="#a30000", command=lambda id=id, valor=False, coleccion=coleccion: self.cambiar_activo(id, valor, coleccion)).pack(side="left", padx=2)
         else: # Activar
-            CTkButton(cont, text="A", width=30, height=20, fg_color="#269428", command=lambda id=id, valor=True, coleccion=coleccion: self.cambiar_activo(id, valor, coleccion)).pack(side="left", padx=2)
+            CTkButton(cont, text="A", width=30, height=20, fg_color="green", command=lambda id=id, valor=True, coleccion=coleccion: self.cambiar_activo(id, valor, coleccion)).pack(side="left", padx=2)
         return btn_frame
     
     def recargar_tabla(self, coleccion):

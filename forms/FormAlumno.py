@@ -1,3 +1,4 @@
+from tkinter import messagebox
 from customtkinter import CTkToplevel, CTkLabel, CTkEntry, CTkButton, StringVar
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
@@ -24,7 +25,7 @@ class FormAlumno(CTkToplevel):
         # Objeto para la opción de Editar
         self.alumno = None
         
-        if objeto:  
+        if objeto:
             self.alumno = objeto
             self.no_control.set(self.alumno.id)
             self.nombre.set(self.alumno.nombre)
@@ -79,19 +80,19 @@ class FormAlumno(CTkToplevel):
             }
         
             if len(valores['_id']) != 8:
-                print('Error: El formato del número de control es incorrecto')
+                messagebox.showinfo("Error", "El formato del Número de control es incorrecto.")
                 return
             
         if len(valores['nombre']) <= 0 or len(valores['nombre']) > 200:
-            print('Error: El formato del Nombre es incorrecto')
+            messagebox.showinfo("Error", "El formato del Nombre es incorrecto.")
             return
         
         if len(valores['primer_apellido']) <= 0 or len(valores['primer_apellido']) > 200:
-            print('Error: El formato del Primer Apellido es incorrecto')
+            messagebox.showinfo("Error", "El formato del Primer Apellido es incorrecto.")
             return
         
         if len(valores['segundo_apellido']) <= 0 or len(valores['segundo_apellido']) > 200:
-            print('Error: El formato del Segundo Apellido es incorrecto')
+            messagebox.showinfo("Error", "El formato del Segundo Apellido es incorrecto.")
             return
         
         try: # Si se logró insertar el alumno
@@ -103,9 +104,7 @@ class FormAlumno(CTkToplevel):
             self._cerrar()
             
         except PyMongoError as e:
-            print("Error de MongoDB:")
-            print(type(e))
-            print(e)
+            messagebox.showinfo("Error", f"Error de MongoDB: {type(e)}, {e}")
         
     def _cerrar(self):
         if self.on_close:
