@@ -14,7 +14,7 @@ class FormNegocio(CTkToplevel):
         self.resizable(False, False)
         self.on_close = on_close
         
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         # Collections
@@ -76,8 +76,21 @@ class FormNegocio(CTkToplevel):
         self.btn_agregar.configure(state="normal")
 
     def _consultar_alumnos(self):
+        # 1. Obtener todos los alumnos ya asignados a otros negocios
+        query_negocios = {}
+        if self.negocio:
+            query_negocios = {"_id": {"$ne": self.negocio.id}}
+            
+        negocios_db = self.db_negocios.find(query_negocios, {"alumnos": 1})
+        alumnos_asignados = []
+        for n in negocios_db:
+            alumnos_asignados.extend(n.get("alumnos", []))
+            
+        # 2. Combinar con los alumnos seleccionados actualmente en el form
+        alumnos_a_excluir = list(set(alumnos_asignados + self.alumnos))
+
         jsons_alumnos = self.db_alumnos.find(
-            {"esta_activo": True, "_id": {"$nin": self.alumnos}}
+            {"esta_activo": True, "_id": {"$nin": alumnos_a_excluir}}
         )
         alumnos = [Alumno(json) for json in jsons_alumnos]
         
@@ -89,11 +102,17 @@ class FormNegocio(CTkToplevel):
             self.map_alumnos[texto] = alumno.id
             valores.append(texto)
             
+        if not valores:
+            valores = ["No hay alumnos disponibles"]
+            
         self.option_menu.configure(values=valores)
           
     def _agregar_alumno(self):
         value_combo = self.option_menu.get()
-        alumno_id = self.map_alumnos[value_combo]
+        alumno_id = self.map_alumnos.get(value_combo)
+        
+        if not alumno_id:
+            return
         
         self.txt_alumnos.configure(state="normal")
         self.txt_alumnos.insert("0.0", f'{value_combo} \n', alumno_id)

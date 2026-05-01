@@ -21,7 +21,7 @@ class FormLogin(CTkToplevel):
         self.al_iniciar_sesion = al_iniciar_sesion # Función de "App" a ejecutar
 
         # Conexión independiente o pasada por parámetro
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         self.db_usuarios = conexion['emprendetec']['usuarios']
 
         self.correo = StringVar()
@@ -67,12 +67,9 @@ class FormLogin(CTkToplevel):
         # Buscar AL usuario solo por su correo
         user_data = self.db_usuarios.find_one({
                "correo": correo, 
-               "esta_activo": True
+               "esta_activo": True # Solo si es un Usuario Activo
         })
-
-        # self.destroy() # Cerramos ventana de login
-        # self.al_iniciar_sesion(None) 
-
+        
         # # Si el usuario existe, comprobar si las contraseñas coinciden
         if user_data:
             # checkpw requiere datos en formato de bytes.

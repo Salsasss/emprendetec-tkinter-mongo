@@ -1,13 +1,14 @@
 class Usuario:
     columnas = ["Nombre", "Correo", "Rol", "Activo", "Acciones"]
     campos = ["nombre", "correo", "rol", "esta_activo"]
-    
+    roles = {"staff": "Staff", "admin": "Admin"}
+        
     def __init__(self, datos):
         self.id = datos.get('_id', '')
         self.nombre = datos.get('nombre', '')
         self.correo = datos.get('correo', '')
         self.contrasena = datos.get('contrasena', '')
-        self.rol = datos.get('rol', '')
+        self.rol = datos.get('rol', '') # Staff o Admin
         self.fecha_creacion = datos.get('fecha_creacion', '')
         self.esta_activo = datos.get('esta_activo', '')
 

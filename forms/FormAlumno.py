@@ -11,7 +11,7 @@ class FormAlumno(CTkToplevel):
         self.title("Registrar Nuevo Alumno")
         self.on_close = on_close
         
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         # Collections
@@ -39,7 +39,11 @@ class FormAlumno(CTkToplevel):
         
         # No Control
         CTkLabel(self, text="No. Control:").grid(row=1, column=0, padx=15, pady=10, sticky="w")
-        CTkEntry(self, textvariable=self.no_control, justify="center").grid(row=1, column=1, padx=15, pady=10, sticky="ew")
+        entry_control = CTkEntry(self, textvariable=self.no_control, justify="center")
+        entry_control.grid(row=1, column=1, padx=15, pady=10, sticky="ew")
+
+        if self.alumno: # Editando
+            entry_control.configure(state='disabled')
 
         # Nombre
         CTkLabel(self, text="Nombre:").grid(row=2, column=0, padx=15, pady=10, sticky="w")

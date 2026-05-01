@@ -2,22 +2,26 @@ from customtkinter import CTkScrollableFrame, CTkLabel, CTkFrame, CTkButton
 from tkinter import messagebox
 from pymongo import MongoClient
 
+from forms import FormUsuario
 from models.Alumno import Alumno
 from models.Negocio import Negocio
+from models.Usuario import Usuario
 
 from forms.FormAlumno import FormAlumno
 from forms.FormNegocio import FormNegocio
+from forms.FormUsuario import FormUsuario
 
 class TableFrame(CTkScrollableFrame):
     def __init__(self, parent, columnas, **kwargs):
         super().__init__(parent, **kwargs)
 
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         # Collections
         self.db_alumnos = db['alumnos']
         self.db_negocios = db['negocios']
+        self.db_usuarios = db['usuarios']
     
         self.columnas = columnas
 
@@ -91,7 +95,15 @@ class TableFrame(CTkScrollableFrame):
             negocios = [Negocio(json) for json in jsons_negocios]
             
             self._llenar_tabla(negocios, Negocio.campos, coleccion)
-    
+        elif coleccion == self.db_usuarios:
+            jsons_usuarios = self.db_usuarios.find(
+                {}
+            )
+
+            usuarios = [Usuario(json) for json in jsons_usuarios]
+
+            self._llenar_tabla(usuarios, Usuario.campos, coleccion)
+
     def editar(self, id, coleccion):
         json_encontrado = coleccion.find_one(
             {'_id': id}
@@ -109,6 +121,12 @@ class TableFrame(CTkScrollableFrame):
                 lambda: self.recargar_tabla(coleccion=self.db_negocios),
                 objeto=Negocio(json_encontrado)
             )
+        elif coleccion == self.db_usuarios:
+            self.abrir_form(
+                FormUsuario,
+                lambda: self.recargar_tabla(coleccion=self.db_usuarios),
+                objeto=Usuario(json_encontrado)
+            )  
     
     def cambiar_activo(self, id, valor, coleccion):
         respuesta = messagebox.askyesno(

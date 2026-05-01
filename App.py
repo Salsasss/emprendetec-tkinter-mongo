@@ -9,6 +9,7 @@ from PIL import Image
 
 from models.TableFrame import TableFrame
 
+from models.Usuario import Usuario
 from models.Alumno import Alumno
 from models.Negocio import Negocio
 from models.Stand import Stand
@@ -17,7 +18,8 @@ from models.GenPDF import GenPDF
 from forms.FormLogin import FormLogin
 from forms.FormAlumno import FormAlumno
 from forms.FormNegocio import FormNegocio
-from forms.SetStand import SetStand
+from forms.FormUsuario import FormUsuario
+from forms.FormStand import FormStand
 from forms.SeleccionarFecha import SeleccionarFecha
 
 class App(CTk):
@@ -27,7 +29,7 @@ class App(CTk):
         self.geometry('800x650')
         self.resizable(True, True)
         
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         # Collections
@@ -69,6 +71,9 @@ class App(CTk):
         self.tabview.add("Negocios")
         self.tabview.add("Alumnos")
         
+        if self.usuario_actual.rol == Usuario.roles['admin']:
+            self.tabview.add("Usuarios")
+            
     def _init_tablas(self):
         # Tabla Alumnos
         self.tabla_alumnos = TableFrame(self.tabview.tab("Alumnos"), Alumno.columnas)
@@ -94,6 +99,21 @@ class App(CTk):
         negocios = [Negocio(json) for json in jsons_negocios]
         
         self.tabla_negocios._llenar_tabla(negocios, Negocio.campos, self.db_negocios)
+        
+        # Tabla Usuarios
+        if self.usuario_actual.esta_activo and self.usuario_actual.rol == Usuario.roles['staff']: # Solo continuar si el usuario es Admin
+            return
+        
+        self.tabla_usuarios = TableFrame(self.tabview.tab("Usuarios"), Usuario.columnas)
+        self.tabla_usuarios.pack(fill="both", expand=True, padx=20, pady=(5, 20))
+        
+        jsons_usuarios = self.db_usuarios.find(
+            {}
+        )
+        
+        usuarios = [Usuario(json) for json in jsons_usuarios]
+        
+        self.tabla_usuarios._llenar_tabla(usuarios, Usuario.campos, self.db_usuarios)
     
     def _recargar_tabla_alumnos(self):
         json_ultimo = self.db_alumnos.find(
@@ -115,6 +135,16 @@ class App(CTk):
 
         negocio = Negocio(json_ultimo)
         self.tabla_negocios.insertar_fila(negocio, Negocio.campos, self.db_negocios)
+        
+    def _recargar_tabla_usuario(self):
+        json_ultimo = self.db_usuarios.find(
+            {},
+            sort=[("fecha_creacion", -1)],
+            limit=1
+        )[0]
+
+        usuario = Usuario(json_ultimo)
+        self.tabla_usuarios.insertar_fila(usuario, Usuario.campos, self.db_usuarios)    
     
     def _init_botones_stands(self):
         self.cont_stands = CTkFrame(self.tabview.tab("Stands"))
@@ -203,6 +233,13 @@ class App(CTk):
         CTkButton(cont_botones_negocios, text="Nuevo Negocio", command=lambda: self.tabla_negocios.abrir_form(FormNegocio, self._recargar_tabla_negocios)).pack(side='left', padx=5)
         CTkButton(cont_botones_negocios, text="Exportar Negocios (PDF)", command=self.generar_pdf_negocios).pack(side='left', padx=5)
 
+        if self.usuario_actual.esta_activo and self.usuario_actual.rol == Usuario.roles['admin']: # Solo si el usuario es rol Admin
+            cont_botones_usuarios = CTkFrame(self.tabview.tab("Usuarios"), fg_color="transparent")
+            cont_botones_usuarios.pack(pady=5)
+            CTkButton(cont_botones_usuarios, text="Nuevo Usuario", command=lambda: self.tabla_usuarios.abrir_form(FormUsuario, self._recargar_tabla_usuario)).pack(side='left', padx=5)
+            # CTkButton(cont_botones_usuarios, text="Exportar Usuarios (PDF)", command=self.generar_pdf_negocios).pack(side='left', padx=5)
+
+
         # Select de Fecha
         fechas_evento = self.db_stands.distinct("agenda.fecha") # Trae todas las fechas del evento usando distinct
         self.fechas_texto = [fecha.strftime("%d/%m/%Y") for fecha in fechas_evento]
@@ -276,7 +313,7 @@ class App(CTk):
                 messagebox.showinfo("Error", f"Ocurrió un error: {e}")
 
     def abrir_stand(self, stand):
-        ventana_form = SetStand(self, stand, self.fecha_para_mongo, self._init_botones_stands_acciones)
+        ventana_form = FormStand(self, stand, self.fecha_para_mongo, self._init_botones_stands_acciones)
         ventana_form.grab_set()
         ventana_form.desplegar()
     
@@ -370,13 +407,10 @@ class App(CTk):
         self.mainloop()
 
     def _aux_registrar(self):
-        password_plana = "12345" # La que escribió en el input
-        # Hashear la contraseña (bcrypt requiere que el texto esté codificado a bytes)
-        password_hasheada = bcrypt.hashpw(password_plana.encode('utf-8'), bcrypt.gensalt())
-        # Esto es lo que guardas en MongoDB
+        password_hasheada = bcrypt.hashpw("1234".encode('utf-8'), bcrypt.gensalt())
         nuevo_usuario = {
-            "nombre": "Aarón",
-            "correo": "aaronsalasn@gmail.com",
+            "nombre": "Aarón2",
+            "correo": "aaronsalasnn@gmail.com",
             "contrasena": password_hasheada,
             "rol": "admin",
             "fecha_creacion": datetime.now(),

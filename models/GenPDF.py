@@ -21,7 +21,7 @@ class PDFEmprendeTec(FPDF):
 class GenPDF:
     def __init__(self):
         # Conectar a MongoDB para traer los detalles de los alumnos
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         self.db_alumnos = conexion['emprendetec']['alumnos']
 
     def draw_pasillo_en_pdf(self, pdf, stands_totales, stands_ocupados, titulo, width, height, starts, count, cols_per_row, start_x, page_w):

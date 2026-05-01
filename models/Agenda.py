@@ -5,7 +5,7 @@ from models.Negocio import Negocio
 class Agenda:
     
     def __init__(self, datos):
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         self.db_negocios = db['negocios']

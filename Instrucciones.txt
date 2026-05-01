@@ -1,0 +1,117 @@
+================================================================================
+                        MANUAL DE USUARIO E INSTALACIÓN
+                        SISTEMA DE CONTROL EMPRENDETEC
+================================================================================
+
+Este documento contiene los pasos necesarios para instalar, configurar y ejecutar 
+el Sistema de Control EmprendeTec, así como un manual de usuario detallando sus 
+funcionalidades principales.
+
+--------------------------------------------------------------------------------
+                    GUÍA DE INSTALACIÓN Y EJECUCIÓN
+--------------------------------------------------------------------------------
+
+Paso 1: Abrir la terminal o línea de comandos
+Navega hasta la ruta de este proyecto en tu computadora.
+
+Paso 2: Crear un Entorno Virtual (Recomendado)
+Para evitar conflictos con otras librerías, crea un entorno virtual ejecutando:
+    python -m venv .venv
+
+Paso 3: Activar el Entorno Virtual
+- En Windows (PowerShell/CMD):
+    .venv\Scripts\activate
+- En Mac/Linux:
+    source .venv/bin/activate
+
+Paso 4: Instalar las dependencias del sistema
+Asegúrate de que el entorno virtual esté activo (verás un (.venv) en tu consola). 
+Instala las librerías necesarias con el siguiente comando:
+    pip install -r requirements.txt
+
+Las dependencias principales que utiliza el sistema son:
+- customtkinter (Interfaz Gráfica)
+- pymongo (Conexión a la base de datos MongoDB)
+- fpdf (Generación de reportes PDF)
+- bcrypt (Encriptación de contraseñas)
+- pillow (Manejo de imágenes)
+
+Paso 5: Ejecutar la Aplicación
+Para arrancar el sistema, simplemente ejecuta el archivo principal:
+    python App.py
+
+--------------------------------------------------------------------------------
+                        MANUAL DE USUARIO
+--------------------------------------------------------------------------------
+
+1. INICIO DE SESIÓN (LOGIN)
+
+Al ejecutar el sistema, se mostrará la pantalla de inicio de sesión. Ingresa
+tu correo y contraseña. Dependiendo de tu rol ("Admin" o "Staff"), tendrás 
+acceso a diferentes módulos de la aplicación.
+
+2. MÓDULOS PRINCIPALES (Pestañas)
+
+--------------------------------------------------------------------------------
+A) Pestaña "Stands" (Logística del Evento
+--------------------------------------------------------------------------------
+
+- Muestra un croquis virtual interactivo con los Pasillos A, B y C.
+
+- Los stands en color VERDE están disponibles.
+
+- Los stands en color ROJO están ocupados y muestran el nombre del negocio.
+
+- Fechas del Evento: En la parte inferior, puedes usar el menú desplegable para
+  cambiar la fecha del evento. Dependiendo de la fecha, la disponibilidad de los
+  stands cambiará. Puedes añadir nuevas fechas (+) o eliminar la actual (x).
+
+- Asignación: Al dar clic sobre un stand verde, se abrirá un formulario para 
+  asignar un Negocio existente a dicho stand en la fecha seleccionada.
+
+- Edición: Al dar clic sobre un stand rojo, se abrirá un formulario para 
+  cambiar el negocio asignado.
+
+- Exportar Logística: El botón "Exportar Logística de hoy (PDF)" generará un 
+  reporte visual del croquis y una lista detallada de los negocios por stand, 
+  indicando si requieren electricidad y los integrantes, guardándolo como PDF.
+
+--------------------------------------------------------------------------------
+B) Pestaña "Negocios"
+--------------------------------------------------------------------------------
+
+- Muestra una tabla con todos los negocios registrados en la base de datos,
+  indicando su categoría y si requieren electricidad.
+
+- "Nuevo Negocio": Abre un formulario para registrar un nuevo proyecto, donde 
+  también podrás asignar a los alumnos integrantes.
+
+- "Exportar Negocios (PDF)": Genera un reporte detallado en PDF con todos 
+  los negocios, sus datos y los alumnos que pertenecen a ellos.
+
+--------------------------------------------------------------------------------
+C) Pestaña "Alumnos"
+--------------------------------------------------------------------------------
+
+- Muestra una tabla con los alumnos registrados, sus números de control y fechas.
+
+- "Nuevo Alumno": Abre un formulario para dar de alta a un estudiante en el sistema.
+
+- "Exportar Alumnos (PDF)": Genera una lista en PDF con la información de todos 
+  los estudiantes dados de alta.
+
+--------------------------------------------------------------------------------
+D) Pestaña "Usuarios" (Exclusivo para Administradores)
+--------------------------------------------------------------------------------
+
+- Muestra la tabla de las personas con acceso al sistema (Admin o Staff).
+
+- "Nuevo Usuario": Permite registrar personal para el control de la aplicación, 
+  sus contraseñas se almacenarán de forma segura (encriptadas mediante bcrypt).
+
+--------------------------------------------------------------------------------
+3. CERRAR SESIÓN
+--------------------------------------------------------------------------------
+
+En la barra inferior de la aplicación, encontrarás el botón para cerrar sesión. 
+Al darle clic o interactuar con él, volverás a la pantalla inicial de Login.

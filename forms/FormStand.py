@@ -3,18 +3,16 @@ from customtkinter import CTkToplevel, CTkLabel, CTkFont, CTkButton, CTkOptionMe
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from datetime import datetime
-
 from models.Negocio import Negocio
 
-class SetStand(CTkToplevel):
+class FormStand(CTkToplevel):
     def __init__(self, parent, stand, fecha, on_close=None, objeto={}):
         super().__init__()
         self.title("Asignar Stand")
         self.resizable(False, False)
         self.on_close = on_close
         
-        conexion = MongoClient("mongodb://localhost:27017/")
+        conexion = MongoClient('mongodb+srv://aaronsalasn_db_user:4lGNYrzHie9kCzfM@cluster0.vss7zgu.mongodb.net/')
         db = conexion['emprendetec'] # Cluster
         
         # Collections
