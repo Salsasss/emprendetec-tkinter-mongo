@@ -32,3 +32,5 @@ target/
 
 # IPython Notebook
 .ipynb_checkpoints
+
+stands.mongodb.js
